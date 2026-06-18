@@ -21,17 +21,37 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   process.env.FRONTEND_URL,
+  process.env.FRONTEND_URL_2, // optional second frontend URL
 ].filter(Boolean);
+
+// CORS origin checker: allows exact matches + any *.vercel.app preview URLs
+const corsOriginCheck = (origin, callback) => {
+  // Allow requests with no origin (mobile apps, Postman, server-to-server)
+  if (!origin) return callback(null, true);
+  
+  const isAllowed =
+    allowedOrigins.includes(origin) ||
+    /https:\/\/[a-z0-9-]+-[a-z0-9-]+\.vercel\.app$/.test(origin) ||
+    /https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin);
+  
+  if (isAllowed) {
+    callback(null, true);
+  } else {
+    console.warn(`CORS blocked origin: ${origin}`);
+    callback(new Error(`CORS policy: origin ${origin} not allowed`));
+  }
+};
 
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
-    methods: ['GET', 'POST']
+    origin: corsOriginCheck,
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: corsOriginCheck,
   credentials: true
 }));
 app.use(express.json());
