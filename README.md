@@ -4,6 +4,24 @@ A modern, full-stack Paper Trading Application built to simulate real-time stock
 
 ![StockTrade Banner](https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&q=80&w=1200&h=400)
 
+## 🌍 Live Demo
+
+| Service | URL |
+|---|---|
+| 🖥️ Frontend | [stock-trader-omega.vercel.app](https://stock-trader-omega.vercel.app) |
+| ⚙️ Backend API | [stocktrader-c1je.onrender.com](https://stocktrader-c1je.onrender.com) |
+
+## 🔐 Test Credentials
+
+You can use the following credentials to explore the platform without creating an account:
+
+| Role | Email | Password |
+|---|---|---|
+| 👤 Regular User | `user@stocktrade.com` | `User@123` |
+| 🛡️ Admin | `admin@stocktrade.com` | `Admin@123` |
+
+> **Note:** The Admin account has access to the Admin Control Panel where you can view all users and global transactions.
+
 ## 🚀 Features
 
 - **Real-Time Market Data:** Live stock quotes fetched via Finnhub API.
@@ -28,7 +46,7 @@ A modern, full-stack Paper Trading Application built to simulate real-time stock
 - **Framework:** Express.js
 - **Database:** MongoDB & Mongoose
 - **Authentication:** JSON Web Tokens (JWT) & bcrypt.js
-- **External APIs:** Finnhub (Live Market Data)
+- **Real-Time Prices:** Simulated WebSocket price broadcasting via Socket.io
 
 ## ⚙️ Installation & Setup
 
@@ -50,7 +68,7 @@ Create a `.env` file in the `backend` directory and add the following variables:
 PORT=5000
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
-FINNHUB_API_KEY=your_finnhub_api_key
+FRONTEND_URL=http://localhost:5173
 ```
 Start the backend server:
 ```bash
