@@ -18,7 +18,7 @@ You can use the following credentials to explore the platform without creating a
 | Role | Email | Password |
 |---|---|---|
 | 👤 Regular User | `user@stocktrade.com` | `User@123` |
-| 🛡️ Admin | `admin@stocktrade.com` | `Admin@123` |
+| 🛡️ Admin | `admin@gmail.com` | `admin123` |
 
 > **Note:** The Admin account has access to the Admin Control Panel where you can view all users and global transactions.
 
