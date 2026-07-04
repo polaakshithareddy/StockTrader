@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress, Button, Snackbar, Alert, Card, CardContent } from '@mui/material';
+import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress, Button, Snackbar, Alert, Card, CardContent, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, TextField } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
+import CloseIcon from '@mui/icons-material/Close';
 import api from '../../services/api';
 
 const Portfolio = () => {
@@ -10,6 +13,11 @@ const Portfolio = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [toastSeverity, setToastSeverity] = useState('success');
 
+  // Sell modal state
+  const [sellModalOpen, setSellModalOpen] = useState(false);
+  const [selectedHolding, setSelectedHolding] = useState(null);
+  const [sellQuantity, setSellQuantity] = useState(1);
+
   const showToast = (msg, severity = 'error') => {
     setToastMessage(msg);
     setToastSeverity(severity);
@@ -17,9 +25,7 @@ const Portfolio = () => {
   };
 
   const handleCloseToast = (event, reason) => {
-    if (reason === 'clickaway') {
-      return;
-    }
+    if (reason === 'clickaway') return;
     setToastOpen(false);
   };
 
@@ -38,11 +44,40 @@ const Portfolio = () => {
     fetchPortfolio();
   }, []);
 
-  const handleSell = async (stockId) => {
+  const openSellModal = (holding) => {
+    setSelectedHolding(holding);
+    setSellQuantity(1);
+    setSellModalOpen(true);
+  };
+
+  const closeSellModal = () => {
+    setSellModalOpen(false);
+    setSelectedHolding(null);
+  };
+
+  const handleSellQuantityChange = (val) => {
+    const parsed = parseInt(val);
+    if (!isNaN(parsed) && parsed >= 1 && parsed <= selectedHolding?.quantity) {
+      setSellQuantity(parsed);
+    } else if (val === '') {
+      setSellQuantity('');
+    }
+  };
+
+  const handleSellQuantityBlur = () => {
+    if (!sellQuantity || sellQuantity < 1) setSellQuantity(1);
+  };
+
+  const handleSell = async () => {
+    const qty = parseInt(sellQuantity);
+    if (!qty || qty < 1) return showToast('Please enter a valid quantity.', 'error');
+    if (qty > selectedHolding?.quantity) return showToast(`You only own ${selectedHolding?.quantity} shares.`, 'error');
+
     setActionLoading(true);
     try {
-      await api.post('/trade/sell', { stockId, quantity: 1 });
-      showToast('Stock sold successfully!', 'success');
+      await api.post('/trade/sell', { stockId: selectedHolding.stockId?._id, quantity: qty });
+      showToast(`Successfully sold ${qty} share${qty > 1 ? 's' : ''} of ${selectedHolding.stockId?.symbol}!`, 'success');
+      closeSellModal();
       fetchPortfolio();
     } catch (error) {
       showToast(error.response?.data?.message || 'Transaction failed', 'error');
@@ -54,6 +89,8 @@ const Portfolio = () => {
   if (loading) {
     return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>;
   }
+
+  const sellTotal = selectedHolding ? (selectedHolding.stockId?.currentPrice * (parseInt(sellQuantity) || 0)).toFixed(2) : '0.00';
 
   return (
     <Box className="py-4">
@@ -112,11 +149,10 @@ const Portfolio = () => {
                   <TableCell align="right" className="text-slate-600 dark:text-slate-400">${row.stockId?.currentPrice?.toFixed(2)}</TableCell>
                   <TableCell align="right" className="font-bold text-slate-800 dark:text-white">${(row.quantity * row.stockId?.currentPrice)?.toFixed(2)}</TableCell>
                   <TableCell align="right">
-                    <Button 
-                      variant="outlined" 
-                      color="secondary" 
-                      onClick={() => handleSell(row.stockId?._id)}
-                      disabled={actionLoading}
+                    <Button
+                      variant="outlined"
+                      color="secondary"
+                      onClick={() => openSellModal(row)}
                       size="small"
                       className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/30"
                     >
@@ -136,6 +172,92 @@ const Portfolio = () => {
           </Table>
         </TableContainer>
       </Card>
+
+      {/* Sell Modal */}
+      <Dialog open={sellModalOpen} onClose={closeSellModal} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '16px', p: 1 } }}>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+          <Box>
+            <Typography variant="h6" fontWeight="bold">Sell Shares</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {selectedHolding?.stockId?.companyName} ({selectedHolding?.stockId?.symbol})
+            </Typography>
+          </Box>
+          <IconButton onClick={closeSellModal} size="small">
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent>
+          {/* Stock Info */}
+          <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg mb-4">
+            <Typography variant="body2" color="text.secondary">Current Price</Typography>
+            <Typography fontWeight="bold">${selectedHolding?.stockId?.currentPrice?.toFixed(2)}</Typography>
+          </div>
+          <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-800 rounded-lg mb-5">
+            <Typography variant="body2" color="text.secondary">Shares Owned</Typography>
+            <Typography fontWeight="bold">{selectedHolding?.quantity}</Typography>
+          </div>
+
+          {/* Quantity Selector */}
+          <Typography className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
+            Quantity to Sell
+          </Typography>
+          <div className="flex items-center gap-3 mb-4">
+            <IconButton
+              onClick={() => setSellQuantity(q => Math.max(1, parseInt(q || 1) - 1))}
+              size="small"
+              sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '8px' }}
+            >
+              <RemoveIcon fontSize="small" />
+            </IconButton>
+            <TextField
+              value={sellQuantity}
+              onChange={(e) => handleSellQuantityChange(e.target.value)}
+              onBlur={handleSellQuantityBlur}
+              inputProps={{ min: 1, max: selectedHolding?.quantity, style: { textAlign: 'center', fontWeight: 'bold', fontSize: '1.1rem' } }}
+              size="small"
+              sx={{ width: '80px' }}
+            />
+            <IconButton
+              onClick={() => setSellQuantity(q => Math.min(selectedHolding?.quantity || 1, parseInt(q || 1) + 1))}
+              size="small"
+              sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '8px' }}
+            >
+              <AddIcon fontSize="small" />
+            </IconButton>
+            <Button
+              size="small"
+              variant="text"
+              onClick={() => setSellQuantity(selectedHolding?.quantity)}
+              sx={{ ml: 'auto', textTransform: 'none', color: 'primary.main' }}
+            >
+              Sell All
+            </Button>
+          </div>
+
+          {/* Total Value Preview */}
+          <div className="flex justify-between items-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+            <Typography className="text-slate-600 dark:text-slate-400 text-sm font-medium">You will receive</Typography>
+            <Typography className="font-bold text-red-600 dark:text-red-400 text-lg">${sellTotal}</Typography>
+          </div>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2, pt: 1, gap: 1 }}>
+          <Button onClick={closeSellModal} variant="outlined" fullWidth sx={{ borderRadius: '10px' }}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSell}
+            variant="contained"
+            color="error"
+            fullWidth
+            disabled={actionLoading}
+            sx={{ borderRadius: '10px', fontWeight: 'bold' }}
+          >
+            {actionLoading ? 'Selling...' : `Sell ${sellQuantity} Share${parseInt(sellQuantity) > 1 ? 's' : ''}`}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar open={toastOpen} autoHideDuration={4000} onClose={handleCloseToast} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert onClose={handleCloseToast} severity={toastSeverity} sx={{ width: '100%' }}>
