@@ -41,16 +41,22 @@ const checkCorsOrigin = (origin, callback) => {
 
 const io = new Server(server, {
   cors: {
-    origin: checkCorsOrigin,
-    methods: ['GET', 'POST'],
+    origin: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
     credentials: true
   }
 });
 
 app.use(cors({
-  origin: checkCorsOrigin,
-  credentials: true
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
+
+// Handle preflight requests for all endpoints
+app.options('*', cors());
 app.use(express.json());
 
 app.use('/api/auth', require('./routes/authRoutes'));
