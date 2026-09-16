@@ -55,8 +55,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
 
-// Handle preflight requests for all endpoints
-app.options('*', cors());
+
 app.use(express.json());
 
 app.use('/api/auth', require('./routes/authRoutes'));
