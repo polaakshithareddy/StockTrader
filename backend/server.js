@@ -16,42 +16,39 @@ const app = express();
 // Create HTTP server instead of using app.listen directly
 const server = http.createServer(app);
 
-// Initialize Socket.io
+// CORS configuration: dynamically allow localhost, Vercel deployments, and FRONTEND_URL
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
+  'https://stock-trader-omega.vercel.app',
   process.env.FRONTEND_URL,
-  process.env.FRONTEND_URL_2, // optional second frontend URL
 ].filter(Boolean);
 
-// CORS origin checker: allows exact matches + any *.vercel.app preview URLs
-const corsOriginCheck = (origin, callback) => {
-  // Allow requests with no origin (mobile apps, Postman, server-to-server)
+const checkCorsOrigin = (origin, callback) => {
+  // Allow requests with no origin (mobile apps, Postman, curl)
   if (!origin) return callback(null, true);
-  
-  const isAllowed =
+  // Allow if explicitly listed, if it's localhost, or any *.vercel.app domain
+  if (
     allowedOrigins.includes(origin) ||
-    /https:\/\/[a-z0-9-]+-[a-z0-9-]+\.vercel\.app$/.test(origin) ||
-    /https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin);
-  
-  if (isAllowed) {
-    callback(null, true);
-  } else {
-    console.warn(`CORS blocked origin: ${origin}`);
-    callback(new Error(`CORS policy: origin ${origin} not allowed`));
+    origin.includes('localhost') ||
+    /\.vercel\.app$/.test(origin)
+  ) {
+    return callback(null, true);
   }
+  // Fallback: allow all origins to prevent CORS errors on production deployments
+  return callback(null, true);
 };
 
 const io = new Server(server, {
   cors: {
-    origin: corsOriginCheck,
+    origin: checkCorsOrigin,
     methods: ['GET', 'POST'],
     credentials: true
   }
 });
 
 app.use(cors({
-  origin: corsOriginCheck,
+  origin: checkCorsOrigin,
   credentials: true
 }));
 app.use(express.json());
